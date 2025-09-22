@@ -105,5 +105,85 @@ primary key (movie_id, person_id, job_id, role)
 
 -- e. Elimine los registros duplicados, dejando sólo la posición menor para cada
 -- registro repetido.
+WITH cte AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY movie_id, job_id, role, person_id
+            ORDER BY position ASC
+        ) AS rn
+    FROM casts
+)
+DELETE FROM casts
+WHERE id IN (
+    SELECT id
+    FROM cte
+    WHERE rn > 1
+);
+
+-- 3.Movie Abstracts
+-- Para las tablas movie_abstracts_XX realizar las siguientes acciones:
+
+-- a. En la tabla movie_abstracts_es agregue la columna language
+alter table movie_abstracts_es
+add column language varchar(10)
+
+-- b. Actualice la columna language con el valor 'es'
+update movie_abstracts_es
+set language = 'es'
+
+-- c. Elimine la clave primaria de la tabla movie_abstracts_es
+alter table movie_abstracts_es
+drop constraint movie_abstracts_es_pkey
+
+-- d. En una sola instrucción SQL Inserte los datos de las tablas
+-- movie_abstracts_en, movie_abstracts_de, movie_abstracts_fr
+create table movie_abstracts (
+	movie_id int,
+	abstract text,
+	language varchar(10)
+)
+
+insert into movie_abstracts (movie_id, abstract, language)
+select
+	movie_id,
+	abstract,
+	'en' as language
+from movie_abstracts_en
+union all
+select
+	movie_id,
+	abstract,
+	'de' as language
+from movie_abstracts_de
+union all
+select
+	movie_id,
+	abstract,
+	'fr' as language
+from movie_abstracts_fr
+
+-- e. Defina la columna language obligatoria.
+alter table movie_abstracts_es
+alter column language set not null
+
+-- f. Agregue la clave primaria para movie_abstracts_es con las columnas
+-- (movie_id y language)
+alter table movie_abstracts_es
+add constraint movie_abstracts_es_pkey
+primary key (movie_id, language)
+
+-- g. Renombre la tabla movie_abstracts_es a movie_abstracts
+alter table movie_abstracts_es
+rename to movie_abstracts
+
+-- h. Elimine las tablas movie_abstracts_en, movie_abstracts_de,
+-- movie_abstracts_fr
+drop table if exists movie_abstracts_en;
+drop table if exists movie_abstracts_de;
+drop table if exists movie_abstracts_fr;
+
+
+
 
 
